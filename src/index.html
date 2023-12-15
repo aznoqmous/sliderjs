@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <script type="module" src="./script.js"></script>
+    <h1>sliderjs</h1>
+    <div id="slider">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+    </div>
+    <style>
+        #slider {
+            position: relative;
+            width: 50vw;
+            outline: 4px solid;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 0 auto;
+        }
+        #slider .container {
+            display: flex;
+            width: fit-content;
+            gap: 1rem;
+            height: 15rem;
+            align-items: center;
+        }
+        #slider .item {
+            width: 100%;
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 5rem;
+            color: white;
+            user-select: none;
+            opacity: 0.5;
+            transition: all 0.2s ease;
+            background: var(--color);
+            z-index: -1;
+
+        }
+        #slider .item.visible {
+            height: 15rem !important;
+        }
+        #slider .item.active {
+            opacity: 1;
+        }
+    </style>
+    <script>
+        const sliderElement = document.getElementById("slider")
+        sliderElement.querySelectorAll(".item").forEach((element,i) =>{
+            element.style.setProperty("--color", `hsl(${Math.random()*255}, 70%, 70%)`)
+            element.style.width = `${Math.random() * 20 + 10}rem`
+            element.style.height = `10rem`
+            element.innerHTML = i + 1
+        })
+        document.addEventListener('DOMContentLoaded', ()=>{
+            const slider = new Slider(sliderElement, {
+                itemsParent: ".container",
+                items: ".item"
+             })
+        })
+    </script>
+</body>
+</html>
