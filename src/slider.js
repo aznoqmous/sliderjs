@@ -1,7 +1,9 @@
 
 import Element from "./element"
 import MathUtils from "./math-utils";
+
 export default class Slider extends Element {
+
     constructor(container, opts={}) {
         super(container, Object.assign({
             itemsContainer: null,
@@ -9,8 +11,11 @@ export default class Slider extends Element {
             items: null,
             transition: "transform 0.4s cubic-bezier(0.25,1,0.5,1) 0s",
             mouse: true,
-            touch: true
+            touch: true,
+            clickDragTimeout: 250, // in ms, under this value triggers a click, over this value triggers a drag
+            fitContainer: false, // force item sizes to take full container
         }, opts));
+        this._loop()
     }
 
     build() {
@@ -27,6 +32,12 @@ export default class Slider extends Element {
         this.itemsContainer.classList.add('slider')
         this.items.map(item => item.classList.add('slider-item'))
 
+        if(this.opts.fitContainer) this.items.map(item => {
+            item.style.width = "var(--container-width)"
+            item.style.height = "var(--container-height)"
+        })
+
+        this.updateContainerSize()
         this.play()
     }
 
@@ -34,12 +45,23 @@ export default class Slider extends Element {
     bind() {
         if(this.opts.touch) this.bindTouch()
         if(this.opts.mouse) this.bindMouse()
+
+        window.addEventListener("resize", ()=> this.updateContainerSize())
     }
+
+    bindItems(eventName, callback){
+        this.items.map((item, index) => item.addEventListener(eventName, (e)=> callback(e, index)))
+    }
+
     bindMouse(){
-        this.itemsContainer.addEventListener('mousedown', (e) => {
+        this.bindItems('mousedown', (e, i) => {
+            this.mouseDownTime = performance.now()
+            this.mouseDownItem = this.items[i]
+
             this.unfloorLeft()
             window.addEventListener('mousemove', mouseMove)
         })
+    
         const mouseMove = (e) => {
             if(!this.lastX) {
                 this.touchStartX = e.clientX
@@ -52,10 +74,21 @@ export default class Slider extends Element {
         }
 
         this.itemsContainer.addEventListener('mouseup', () => {
-            this.play()
+            if(!this.lastX && ! this.mouseDownItem) return;
+
+            if(this.touchDistX < 30)
+            {
+                this.setItem(this.mouseDownItem)
+                this.floorLeft()
+            }
+            else {
+                this.play()
+            }
+            this.mouseDownItem = null
             this.lastX = null
             window.removeEventListener('mousemove', mouseMove)
         })
+
         this.itemsContainer.addEventListener('mouseleave', ()=>{
             if(!this.lastX) return;
             this.play()
@@ -63,8 +96,33 @@ export default class Slider extends Element {
             window.removeEventListener('mousemove', mouseMove)
         })
     }
+
+    get touchDistX(){
+        return this.lastX ? Math.abs(this.lastX - this.touchStartX) : 0
+    }
+
+
+    _loop(){
+        if(!this.mouseDownItem){
+            const currentOffsetX = this.items[0].getBoundingClientRect().left 
+            if(currentOffsetX == this._lastOffsetX){
+                if(!this._loopFloored){
+                    this.setNearestTarget()
+                    this.floorLeft()
+                    this._loopFloored = true
+                }
+            }
+            else {
+                this._loopFloored = false
+            }
+            this._lastOffsetX = currentOffsetX
+        }
+        
+        requestAnimationFrame(this._loop.bind(this))
+    }
+    
     bindTouch(){
-        this.itemsContainer.addEventListener('touchstart', (e) => {
+        this.bindItems('touchstart', (e) => {
             this.touchStartX = e.touches[0].clientX
             this.lastX = this.touchStartX
             this.unfloorLeft()
@@ -81,29 +139,23 @@ export default class Slider extends Element {
         })
     }
 
-    
+    prev(){
+        this.setIndex(this.activeIndex-1)
+        this.floorLeft()
+    }
+    next(){
+        this.setIndex(this.activeIndex+1)
+        this.floorLeft()
+    }
+
     play(offset = 0) {
         this.offset = offset
         this.containerRect = this.itemsContainer.getBoundingClientRect()
-        this.update()
+        this.setNearestTarget()
         this.floorLeft()
     }
     
-    set(index=0){
-        this.containerRect = this.itemsContainer.getBoundingClientRect()
-        this.setIndex(index)
-        this.floorLeft()
-    }
-
-    next(){
-        this.play(1)
-    }
-
-    prev(){
-        this.play(-1)
-    }
-
-    update() {
+    setNearestTarget() {
         const centers = this.items.map(item => {
             item.rect = item.getBoundingClientRect()
             return item.rect.left + item.rect.width / 2 - this.containerRect.width / 2 - this.containerRect.left
@@ -114,6 +166,10 @@ export default class Slider extends Element {
         this.setIndex(index + this.offset)
     }
 
+    setItem(item){
+        console.log(item)
+        this.setIndex(this.items.indexOf(item))
+    }
     setIndex(index){
         this.activeIndex = MathUtils.clamp(index, 0, this.items.length - 1)
         this.activeItem = this.items[this.activeIndex]
@@ -130,6 +186,7 @@ export default class Slider extends Element {
         this.itemsParent.style.transform = `translateX(${-this.targetLeft}px)`
         this.dispatchEvent(new SliderChangeEvent(this.activeItem, this.activeIndex))
     }
+
     unfloorLeft(){
         this.itemsParent.style.transition = null
         this.itemsParent.style.userSelect = "none"
@@ -142,7 +199,12 @@ export default class Slider extends Element {
 
         this.items.map(item => item.classList.toggle('active', this.activeItem == item))
         this.items.map(item => item.classList.toggle('visible', item.rect.left + item.rect.width > this.containerRect.left && item.rect.left < this.containerRect.left + this.containerRect.width))
+    }
 
+    updateContainerSize(){
+        this.containerRect = this.itemsContainer.getBoundingClientRect()
+        this.container.style.setProperty("--container-width", this.containerRect.width + "px")
+        this.container.style.setProperty("--container-height", this.containerRect.height + "px")
     }
 }
 

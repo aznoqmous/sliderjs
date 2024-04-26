@@ -7,7 +7,7 @@
 html,
 body
 {
-    overflow: hidden;
+    overflow-x: hidden;
     font-family: monospace;
 }
 
@@ -18,8 +18,13 @@ body {
     padding: 2rem;
 }
 
-h1 {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 1rem;
+
+
+.slider {
+    position: relative;
+    display: block;
+    .container {
+        display: flex;
+        width: fit-content;
+    }
 }
