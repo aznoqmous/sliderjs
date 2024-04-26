@@ -1,0 +1,9 @@
+.slider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    .container {
+        display: flex;
+        width: fit-content;
+    }
+}

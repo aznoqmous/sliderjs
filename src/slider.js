@@ -13,7 +13,11 @@ export default class Slider extends Element {
             mouse: true,
             touch: true,
             clickDragTimeout: 250, // in ms, under this value triggers a click, over this value triggers a drag
+
             fitContainer: false, // force item sizes to take full container
+            loop: false,
+            autoHeight: false,
+            autoPlay: false
         }, opts));
         this._loop()
     }
@@ -32,13 +36,31 @@ export default class Slider extends Element {
         this.itemsContainer.classList.add('slider')
         this.items.map(item => item.classList.add('slider-item'))
 
+        this.offset = 0
+        this.defaultItems = Array.from(this.items)
+
         if(this.opts.fitContainer) this.items.map(item => {
             item.style.width = "var(--container-width)"
             item.style.height = "var(--container-height)"
         })
 
         this.updateContainerSize()
-        this.play()
+        this.updateItemsRect()
+
+        
+        this.initialActiveItem = this.select(".active") || this.items[0]
+        this.unfloorLeft()
+        this.setItem(this.initialActiveItem)
+        this.applyLeft()
+
+        if(this.opts.loop) this.buildLoop()
+
+        if(this.opts.autoPlay) this.autoPlay()
+
+    }
+
+    get itemsCount(){
+        return this.defaultItems.length
     }
 
 
@@ -46,11 +68,19 @@ export default class Slider extends Element {
         if(this.opts.touch) this.bindTouch()
         if(this.opts.mouse) this.bindMouse()
 
-        window.addEventListener("resize", ()=> this.updateContainerSize())
+
+        this.lastWindowWidth = window.innerWidth
+        window.addEventListener("resize", ()=> {
+            if(this.lastWindowWidth != window.innerWidth) this.updateContainerSize()
+            this.lastWindowWidth = window.innerWidth
+        })
     }
 
     bindItems(eventName, callback){
-        this.items.map((item, index) => item.addEventListener(eventName, (e)=> callback(e, index)))
+        this.items.map((item) => item.addEventListener(eventName, (e)=> callback(e, this.items.indexOf(item))))
+        this.addEventListener(SliderEvents.AddItemEvent, (item)=> {
+            item.addEventListener(eventName, (e)=> callback(e, this.items.indexOf(item)))
+        })
     }
 
     bindMouse(){
@@ -89,7 +119,11 @@ export default class Slider extends Element {
             window.removeEventListener('mousemove', mouseMove)
         })
 
+        this.itemsContainer.addEventListener('mouseenter', ()=>{
+            this.stopAutoPlay()
+        })
         this.itemsContainer.addEventListener('mouseleave', ()=>{
+            if(this.opts.autoPlay) this.autoPlay()
             if(!this.lastX) return;
             this.play()
             this.lastX = null
@@ -104,23 +138,63 @@ export default class Slider extends Element {
 
     _loop(){
         if(!this.mouseDownItem){
-            const currentOffsetX = this.items[0].getBoundingClientRect().left 
-            if(currentOffsetX == this._lastOffsetX){
+            this.currentOffsetX = this.items[0].getBoundingClientRect().left 
+            if(Math.abs(this.currentOffsetX - this._lastOffsetX) < 1){
                 if(!this._loopFloored){
                     this.setNearestTarget()
                     this.floorLeft()
                     this._loopFloored = true
+
+                    if(this.opts.loop){
+                        this.balanceLoop()
+                    }
                 }
             }
             else {
                 this._loopFloored = false
             }
-            this._lastOffsetX = currentOffsetX
+            this._lastOffsetX = this.currentOffsetX
         }
         
         requestAnimationFrame(this._loop.bind(this))
     }
     
+    balanceLoop(){
+        this.unfloorLeft()
+        this.setItem(this.activeItem)
+        this.applyLeft()
+        this.currentOffsetX = this.items[0].getBoundingClientRect().left
+        this.updateContainerSize()
+
+        const center = this.containerRect.left + this.containerRect.width / 2
+        const left = center - this.parentRect.left
+        const right = this.parentRect.left + this.parentRect.width - center
+        
+        const dist = Math.abs(left - right)
+
+        if(left < right){
+            const lastElement = this.items[this.items.length-1]
+            const lastElementWidth = lastElement.getBoundingClientRect().width
+            if(lastElementWidth < dist / 2) {
+                this.itemsParent.prepend(lastElement)
+                this.items = Array.from(this.itemsParent.children)
+
+                this.balanceLoop()
+            }
+        }
+        else {
+            const firstElement = this.items[0]
+            const firstElementWidth = firstElement.getBoundingClientRect().width
+            if(firstElementWidth < dist / 2) {
+                this.itemsParent.append(firstElement)
+                this.items = Array.from(this.itemsParent.children)
+
+                this.balanceLoop()                
+            }
+        }
+    
+    }
+
     bindTouch(){
         this.bindItems('touchstart', (e) => {
             this.touchStartX = e.touches[0].clientX
@@ -164,10 +238,12 @@ export default class Slider extends Element {
         const nearest = centersSorted.sort((a, b) => Math.abs(a) - Math.abs(b))[0]
         const index = centers.indexOf(nearest)
         this.setIndex(index + this.offset)
+
+                
+        
     }
 
     setItem(item){
-        console.log(item)
         this.setIndex(this.items.indexOf(item))
     }
     setIndex(index){
@@ -180,6 +256,8 @@ export default class Slider extends Element {
             - this.containerRect.width / 2
             - this.containerRect.left
             + this.targetLeft
+        if(this.opts.autoHeight) this.itemsContainer.style.height = this.activeItem.getBoundingClientRect().height + "px"
+
     }
 
     applyLeft(){
@@ -201,21 +279,65 @@ export default class Slider extends Element {
         this.items.map(item => item.classList.toggle('visible', item.rect.left + item.rect.width > this.containerRect.left && item.rect.left < this.containerRect.left + this.containerRect.width))
     }
 
+    updateItemsRect(){
+        this.items.map(item => item.rect = item.getBoundingClientRect())
+    }
     updateContainerSize(){
         this.containerRect = this.itemsContainer.getBoundingClientRect()
+        this.parentRect = this.itemsParent.getBoundingClientRect()
         this.container.style.setProperty("--container-width", this.containerRect.width + "px")
         this.container.style.setProperty("--container-height", this.containerRect.height + "px")
+    }
+
+    stopAutoPlay(){
+        if(this.autoPlayTimeout) clearTimeout(this.autoPlayTimeout)
+    }
+
+    autoPlay(){
+        this.stopAutoPlay()
+        this.autoPlayTimeout = setTimeout(()=> {
+            this.next()
+            this.autoPlay()
+        }, this.opts.autoPlay * 1000)
+    }
+
+    buildLoop(){
+        const cloneLoop = ()=>{
+            this.cloneItems()
+            this.updateContainerSize()
+            this.updateItemsRect()
+            if(this.parentRect.width / 4 < window.innerWidth) cloneLoop()
+        }
+        cloneLoop()
+        this.setItem(this.items[this.activeIndex + this.defaultItems.length])
+        this.applyLeft()
+    }
+    cloneItems(){
+        this.defaultItems.map(item => this.addItem(item.cloneNode(true)))
+    }
+    addItem(item){
+        this.items.push(item)
+        this.itemsParent.append(item)
+        this.dispatchEvent(new SliderAddItem(item))
     }
 }
 
 export const SliderEvents = {
-    ChangeEvent: "change"
+    ChangeEvent: "sliderChange",
+    AddItemEvent: "sliderAddItem",
 }
 
 export class SliderChangeEvent extends Event {
     constructor(activeItem, activeIndex) {
-        super(SliderEvents.ChangeEvent);
+        super(SliderEvents.ChangeEvent)
         this.item = activeItem
         this.index = activeIndex
+    }
+}
+
+export class SliderAddItem extends Event {
+    constructor(item){
+        super(SliderEvents.AddItemEvent)
+        this.item = item
     }
 }
