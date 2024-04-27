@@ -99,3 +99,16 @@ code {
 code span {
     color: coral;
 }
+
+.slider-100 {
+    .item {
+        width: var(--container-width) !important;
+        height: var(--container-height) !important;
+    }
+}
+.slider-50 {
+    .item {
+        width: calc(var(--container-width) / 2) !important;
+        height: calc(var(--container-height) / 2) !important;
+    }
+}

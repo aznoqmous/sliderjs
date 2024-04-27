@@ -13,11 +13,13 @@ export default class Slider extends Element {
             mouse: true,
             touch: true,
             clickDragTimeout: 250, // in ms, under this value triggers a click, over this value triggers a drag
+            minDragDistance: 30,
 
-            fitContainer: false, // force item sizes to take full container
             loop: false,
             autoHeight: false,
-            autoPlay: false
+            autoPlay: false,
+            clamp: false, // first element will stick to container left, last to right
+
         }, opts));
         this._loop()
     }
@@ -39,15 +41,9 @@ export default class Slider extends Element {
         this.offset = 0
         this.defaultItems = Array.from(this.items)
 
-        if(this.opts.fitContainer) this.items.map(item => {
-            item.style.width = "var(--container-width)"
-            item.style.height = "var(--container-height)"
-        })
+        this.update()
+        this.offsetX = this.parentRect.left - this.containerRect.left
 
-        this.updateContainerSize()
-        this.updateItemsRect()
-
-        
         this.initialActiveItem = this.select(".active") || this.items[0]
         this.unfloorLeft()
         this.setItem(this.initialActiveItem)
@@ -56,18 +52,23 @@ export default class Slider extends Element {
         if(this.opts.loop) this.buildLoop()
 
         if(this.opts.autoPlay) this.autoPlay()
-
     }
 
     get itemsCount(){
         return this.defaultItems.length
     }
 
+    get isDrag(){
+        return this.touchDistX > this.opts.minDragDistance
+    }
+
+    get touchDistX(){
+        return this.lastX ? Math.abs(this.lastX - this.touchStartX) : 0
+    }
 
     bind() {
         if(this.opts.touch) this.bindTouch()
         if(this.opts.mouse) this.bindMouse()
-
 
         this.lastWindowWidth = window.innerWidth
         window.addEventListener("resize", ()=> {
@@ -106,7 +107,7 @@ export default class Slider extends Element {
         this.itemsContainer.addEventListener('mouseup', () => {
             if(!this.lastX && ! this.mouseDownItem) return;
 
-            if(this.touchDistX < 30)
+            if(!this.isDrag)
             {
                 this.setItem(this.mouseDownItem)
                 this.floorLeft()
@@ -122,19 +123,16 @@ export default class Slider extends Element {
         this.itemsContainer.addEventListener('mouseenter', ()=>{
             this.stopAutoPlay()
         })
+
         this.itemsContainer.addEventListener('mouseleave', ()=>{
             if(this.opts.autoPlay) this.autoPlay()
             if(!this.lastX) return;
             this.play()
+            this.mouseDownItem = null
             this.lastX = null
             window.removeEventListener('mousemove', mouseMove)
         })
     }
-
-    get touchDistX(){
-        return this.lastX ? Math.abs(this.lastX - this.touchStartX) : 0
-    }
-
 
     _loop(){
         if(!this.mouseDownItem){
@@ -164,7 +162,7 @@ export default class Slider extends Element {
         this.setItem(this.activeItem)
         this.applyLeft()
         this.currentOffsetX = this.items[0].getBoundingClientRect().left
-        this.updateContainerSize()
+        this.update()
 
         const center = this.containerRect.left + this.containerRect.width / 2
         const left = center - this.parentRect.left
@@ -217,6 +215,7 @@ export default class Slider extends Element {
         this.setIndex(this.activeIndex-1)
         this.floorLeft()
     }
+
     next(){
         this.setIndex(this.activeIndex+1)
         this.floorLeft()
@@ -230,6 +229,7 @@ export default class Slider extends Element {
     }
     
     setNearestTarget() {
+        if(this.opts.clamp && !this.isDrag) return;
         const centers = this.items.map(item => {
             item.rect = item.getBoundingClientRect()
             return item.rect.left + item.rect.width / 2 - this.containerRect.width / 2 - this.containerRect.left
@@ -238,14 +238,12 @@ export default class Slider extends Element {
         const nearest = centersSorted.sort((a, b) => Math.abs(a) - Math.abs(b))[0]
         const index = centers.indexOf(nearest)
         this.setIndex(index + this.offset)
-
-                
-        
     }
 
     setItem(item){
         this.setIndex(this.items.indexOf(item))
     }
+
     setIndex(index){
         this.activeIndex = MathUtils.clamp(index, 0, this.items.length - 1)
         this.activeItem = this.items[this.activeIndex]
@@ -256,13 +254,15 @@ export default class Slider extends Element {
             - this.containerRect.width / 2
             - this.containerRect.left
             + this.targetLeft
-        if(this.opts.autoHeight) this.itemsContainer.style.height = this.activeItem.getBoundingClientRect().height + "px"
 
+        if(this.opts.clamp){
+            this.targetLeft = MathUtils.clamp(this.targetLeft, 0, this.parentRect.width - this.containerRect.width + this.offsetX * 2)
+        }
+        if(this.opts.autoHeight) this.itemsContainer.style.height = this.activeItem.getBoundingClientRect().height + "px"
     }
 
     applyLeft(){
         this.itemsParent.style.transform = `translateX(${-this.targetLeft}px)`
-        this.dispatchEvent(new SliderChangeEvent(this.activeItem, this.activeIndex))
     }
 
     unfloorLeft(){
@@ -279,9 +279,15 @@ export default class Slider extends Element {
         this.items.map(item => item.classList.toggle('visible', item.rect.left + item.rect.width > this.containerRect.left && item.rect.left < this.containerRect.left + this.containerRect.width))
     }
 
+    update(){
+        this.updateItemsRect()
+        this.updateContainerSize()
+    }
+
     updateItemsRect(){
         this.items.map(item => item.rect = item.getBoundingClientRect())
     }
+
     updateContainerSize(){
         this.containerRect = this.itemsContainer.getBoundingClientRect()
         this.parentRect = this.itemsParent.getBoundingClientRect()
@@ -304,17 +310,18 @@ export default class Slider extends Element {
     buildLoop(){
         const cloneLoop = ()=>{
             this.cloneItems()
-            this.updateContainerSize()
-            this.updateItemsRect()
+            this.update()
             if(this.parentRect.width / 4 < window.innerWidth) cloneLoop()
         }
         cloneLoop()
         this.setItem(this.items[this.activeIndex + this.defaultItems.length])
         this.applyLeft()
     }
+
     cloneItems(){
         this.defaultItems.map(item => this.addItem(item.cloneNode(true)))
     }
+
     addItem(item){
         this.items.push(item)
         this.itemsParent.append(item)
