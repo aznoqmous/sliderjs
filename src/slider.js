@@ -92,7 +92,7 @@ export default class Slider extends Element {
             this.unfloorLeft()
             window.addEventListener('mousemove', mouseMove)
         })
-    
+
         const mouseMove = (e) => {
             if(!this.lastX) {
                 this.touchStartX = e.clientX
@@ -136,7 +136,7 @@ export default class Slider extends Element {
 
     _loop(){
         if(!this.mouseDownItem){
-            this.currentOffsetX = this.items[0].getBoundingClientRect().left 
+            this.currentOffsetX = this.items[0].getBoundingClientRect().left
             if(Math.abs(this.currentOffsetX - this._lastOffsetX) < 1){
                 if(!this._loopFloored){
                     this.setNearestTarget()
@@ -153,10 +153,10 @@ export default class Slider extends Element {
             }
             this._lastOffsetX = this.currentOffsetX
         }
-        
+
         requestAnimationFrame(this._loop.bind(this))
     }
-    
+
     balanceLoop(){
         this.unfloorLeft()
         this.setItem(this.activeItem)
@@ -167,7 +167,7 @@ export default class Slider extends Element {
         const center = this.containerRect.left + this.containerRect.width / 2
         const left = center - this.parentRect.left
         const right = this.parentRect.left + this.parentRect.width - center
-        
+
         const dist = Math.abs(left - right)
 
         if(left < right){
@@ -187,10 +187,10 @@ export default class Slider extends Element {
                 this.itemsParent.append(firstElement)
                 this.items = Array.from(this.itemsParent.children)
 
-                this.balanceLoop()                
+                this.balanceLoop()
             }
         }
-    
+
     }
 
     bindTouch(){
@@ -227,7 +227,7 @@ export default class Slider extends Element {
         this.setNearestTarget()
         this.floorLeft()
     }
-    
+
     setNearestTarget() {
         if(this.opts.clamp && !this.isDrag) return;
         const centers = this.items.map(item => {
@@ -245,6 +245,7 @@ export default class Slider extends Element {
     }
 
     setIndex(index){
+        const oldIndex = this.activeIndex
         this.activeIndex = MathUtils.clamp(index, 0, this.items.length - 1)
         this.activeItem = this.items[this.activeIndex]
         this.activeItem.rect = this.activeItem.getBoundingClientRect()
@@ -259,6 +260,8 @@ export default class Slider extends Element {
             this.targetLeft = MathUtils.clamp(this.targetLeft, 0, this.parentRect.width - this.containerRect.width + this.offsetX * 2)
         }
         if(this.opts.autoHeight) this.itemsContainer.style.height = this.activeItem.getBoundingClientRect().height + "px"
+
+        if(this.activeIndex != oldIndex) this.dispatchEvent(SliderEvents.ChangeEvent, this)
     }
 
     applyLeft(){
