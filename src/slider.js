@@ -261,7 +261,7 @@ export default class Slider extends Element {
         }
         if(this.opts.autoHeight) this.itemsContainer.style.height = this.activeItem.getBoundingClientRect().height + "px"
 
-        if(this.activeIndex != oldIndex) this.dispatchEvent(SliderEvents.ChangeEvent, this)
+        if(this.activeIndex != oldIndex) this.dispatchEvent(new SliderChangeEvent(this.activeItem, this.activeIndex))
     }
 
     applyLeft(){
