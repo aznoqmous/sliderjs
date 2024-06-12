@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sliderjs</title>
+    
+    
+  <script type="module" crossorigin src="./assets/index-b26855c6.js"></script>
+  <link rel="stylesheet" href="./assets/index-afd7a28c.css">
+</head>
+<body>
+    
+    <script>
+        
+        const bindSlider = (opts)=>{
+            const script = Array.from(document.querySelectorAll("script")).at(-1)
+            const selement = script.parentElement
+
+            selement.querySelectorAll(".item").forEach((element,i) =>{
+                element.style.setProperty("--color", `hsl(${Math.random()*255}, 70%, 70%)`)
+                element.style.width = `${Math.random() * 20 + 10}rem`
+                element.style.height = `10rem`
+                element.innerHTML = i + 1
+            })
+
+            return new Promise(res => {
+                document.addEventListener("DOMContentLoaded", ()=> res(new Slider(selement, Object.assign({
+                    itemsParent: ".container",
+                    items: ".item"
+                }, opts))))
+            })
+
+        }
+    </script>
+    <h1>sliderjs</h1>
+
+    <h2>default</h2>
+    <div class="slider">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+        <script>
+            bindSlider()
+        </script>
+    </div>
+
+    <h2>default <code><span>.active</span></code> item</h2>
+    <div class="slider">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item active"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+        <script>
+            bindSlider()
+        </script>
+    </div>
+
+    <h2>100% container size using <code><span>var(--container-width), var(--container-height)</span></code></h2>
+    <div class="slider slider-100">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+        <script>
+            bindSlider()
+        </script>
+    </div>
+
+    <h2>50% container size using <code><span>var(--container-width), var(--container-height)</span></code></h2>
+    <div class="slider slider-50">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+        <script>
+            bindSlider()
+        </script>
+    </div>
+
+    <h2><code><strong>autoplay:</strong><span>2</span></code></h2>
+    <div class="slider">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+        <script>
+            bindSlider({
+                autoPlay: 2
+            })
+        </script>
+    </div>
+
+    <h2><code><strong>autoHeight:</strong><span>true</span></code></h2>
+    <div class="slider slider-auto-height">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+        <script>
+            bindSlider({
+                autoHeight: true
+            })
+        </script>
+    </div>
+
+    <h2><code><strong>loop:</strong><span>true</span></code></h2>
+    <div class="slider">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+        <script>
+            bindSlider({
+                loop: true
+            }).then(slider => slider.addEventListener("sliderChange", (a,b)=> console.log(a,b)))
+        </script>
+    </div>
+
+    <h2><code><strong>clamp:</strong><span>true</span></code></h2>
+    <div class="slider">
+        <div class="container">
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+            <div class="item"></div>
+        </div>
+        <script>
+            bindSlider({
+                clamp: true
+            })
+        </script>
+    </div>
+</body>
+</html>

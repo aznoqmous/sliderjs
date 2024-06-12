@@ -86,6 +86,7 @@ export default class Slider extends Element {
 
     bindMouse(){
         this.bindItems('mousedown', (e, i) => {
+            this.moved = false
             this.mouseDownTime = performance.now()
             this.mouseDownItem = this.items[i]
 
@@ -93,7 +94,13 @@ export default class Slider extends Element {
             window.addEventListener('mousemove', mouseMove)
         })
 
+        this.bindItems('click', (e)=>{
+            if(this.moved) e.preventDefault()
+        })
+
         const mouseMove = (e) => {
+            this.moved = true
+
             if(!this.lastX) {
                 this.touchStartX = e.clientX
                 this.lastX = this.touchStartX
@@ -211,13 +218,18 @@ export default class Slider extends Element {
         })
     }
 
+    setIndex(index){
+        this._setIndex(index)
+        this.floorLeft()
+    }
+
     prev(){
-        this.setIndex(this.activeIndex-1)
+        this._setIndex(this.activeIndex-1)
         this.floorLeft()
     }
 
     next(){
-        this.setIndex(this.activeIndex+1)
+        this._setIndex(this.activeIndex+1)
         this.floorLeft()
     }
 
@@ -237,14 +249,15 @@ export default class Slider extends Element {
         const centersSorted = Array.from(centers)
         const nearest = centersSorted.sort((a, b) => Math.abs(a) - Math.abs(b))[0]
         const index = centers.indexOf(nearest)
-        this.setIndex(index + this.offset)
+        this._setIndex(index + this.offset)
     }
 
     setItem(item){
-        this.setIndex(this.items.indexOf(item))
+        if(this.activeItem === item) return;
+        this._setIndex(this.items.indexOf(item))
     }
 
-    setIndex(index){
+    _setIndex(index){
         const oldIndex = this.activeIndex
         this.activeIndex = MathUtils.clamp(index, 0, this.items.length - 1)
         this.activeItem = this.items[this.activeIndex]
@@ -261,7 +274,7 @@ export default class Slider extends Element {
         }
         if(this.opts.autoHeight) this.itemsContainer.style.height = this.activeItem.getBoundingClientRect().height + "px"
 
-        if(this.activeIndex != oldIndex) this.dispatchEvent(new SliderChangeEvent(this.activeItem, this.activeIndex))
+        if(this.activeIndex !== oldIndex) this.dispatchEvent(new SliderChangeEvent(this.activeItem, this.activeIndex))
     }
 
     applyLeft(){
