@@ -183,7 +183,6 @@ export default class Slider extends Element {
             if(lastElementWidth < dist / 2) {
                 this.itemsParent.prepend(lastElement)
                 this.items = Array.from(this.itemsParent.children)
-
                 this.balanceLoop()
             }
         }
@@ -193,7 +192,6 @@ export default class Slider extends Element {
             if(firstElementWidth < dist / 2) {
                 this.itemsParent.append(firstElement)
                 this.items = Array.from(this.itemsParent.children)
-
                 this.balanceLoop()
             }
         }
@@ -253,7 +251,6 @@ export default class Slider extends Element {
     }
 
     setItem(item){
-        if(this.activeItem === item) return;
         this._setIndex(this.items.indexOf(item))
     }
 

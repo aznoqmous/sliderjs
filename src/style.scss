@@ -38,6 +38,7 @@ h1 {
     padding: 1rem;
     margin: 0 auto;
     user-select: none;
+    margin-bottom: 2rem;
 }
 .slider .container {
 
@@ -80,6 +81,7 @@ h1 {
     position: absolute;
     cursor: pointer;
     font-weight: 600;
+    font-size: 1.5rem;
     top: calc(100% + 1rem);
 }
 .prev {

@@ -140,7 +140,7 @@
         <script>
             bindSlider({
                 loop: true
-            }).then(slider => slider.addEventListener("sliderChange", (a,b)=> console.log(a,b)))
+            })
         </script>
     </div>
 
@@ -156,9 +156,15 @@
             <div class="item"></div>
             <div class="item"></div>
         </div>
+        <strong class="prev">&#x3C; prev</strong>
+        <strong class="next">next &#x3E;</strong>
         <script>
             bindSlider({
                 clamp: true
+            })
+            .then(slider => {
+                slider.select('.prev').addEventListener('click', ()=> slider.prev())
+                slider.select('.next').addEventListener('click', ()=> slider.next())
             })
         </script>
     </div>
