@@ -19,7 +19,6 @@ export default class Slider extends Element {
             autoHeight: false,
             autoPlay: false,
             clamp: false, // first element will stick to container left, last to right
-
         }, opts));
         this._loop()
     }
@@ -166,7 +165,7 @@ export default class Slider extends Element {
 
     balanceLoop(){
         this.unfloorLeft()
-        this.setItem(this.activeItem)
+        this.setItem(this.activeItem, true)
         this.applyLeft()
         this.currentOffsetX = this.items[0].getBoundingClientRect().left
         this.update()
@@ -174,6 +173,10 @@ export default class Slider extends Element {
         const center = this.containerRect.left + this.containerRect.width / 2
         const left = center - this.parentRect.left
         const right = this.parentRect.left + this.parentRect.width - center
+
+
+        if(this.lastLeft === left) return;
+        this.lastLeft = left
 
         const dist = Math.abs(left - right)
 
@@ -250,7 +253,8 @@ export default class Slider extends Element {
         this._setIndex(index + this.offset)
     }
 
-    setItem(item){
+    setItem(item, force=false){
+        if(!force && this.activeItem === item) return;
         this._setIndex(this.items.indexOf(item))
     }
 
@@ -322,8 +326,10 @@ export default class Slider extends Element {
 
     buildLoop(){
         const cloneLoop = ()=>{
+            const width = this.parentRect.width
             this.cloneItems()
             this.update()
+            if(width === this.parentRect.width) return;
             if(this.parentRect.width / 4 < window.innerWidth) cloneLoop()
         }
         cloneLoop()
