@@ -1,5 +1,5 @@
 import Element from "./element"
-import MathUtils from "./math-utils";
+import MathUtils from "./math-utils"
 
 export default class Slider extends Element {
 
@@ -305,6 +305,7 @@ export default class Slider extends Element {
 
     setNearestTarget() {
         if (this.opts.clamp && !this.isDrag) return;
+        if (this.opts.clamp && !this.isDrag) return;
         const index = this.calculateActiveIndex()
         this._setIndex(index + this.offset)
     }
@@ -358,6 +359,8 @@ export default class Slider extends Element {
             const width = this.parentRect.width
             this.cloneItems()
             this.update()
+            if (width === this.parentRect.width) return;
+            if (this.parentRect.width / 4 < window.innerWidth) cloneLoop()
             if (width === this.parentRect.width) return;
             if (this.parentRect.width / 4 < window.innerWidth) cloneLoop()
         }
