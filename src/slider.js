@@ -159,16 +159,18 @@ export default class Slider extends Element {
     }
 
     _loop() {
+
         if (this.opts.carousel) {
+            const activeIndex = this.activeIndex
+            this.targetLeft += Time.deltaTime * this.opts.carousel
+            this.applyLeft()
             this.activeIndex = this.calculateActiveIndex()
             this.activeItem = this.items[this.activeIndex]
-            this.applyLeft()
-            this.balanceLoop()
-            this.targetLeft += Time.deltaTime * this.opts.carousel
-            this.updateItemsClass()
+            if(activeIndex != this.activeIndex) this.balanceLoop()
+            //this.updateItemsClass()
         }
 
-        if (this.opts.loop) {
+        else if (this.opts.loop) {
             this.balanceLoop()
         }
 
@@ -195,7 +197,9 @@ export default class Slider extends Element {
                 this.itemsParent.prepend(lastElement)
                 this.items = Array.from(this.itemsParent.children)
                 this.targetLeft -= activeLeft - this.activeItem.getBoundingClientRect().left
+                this.floorLeft()
                 this.applyLeft()
+                this.unfloorLeft()
             }
         } else {
             const firstElement = this.items[0]
@@ -204,7 +208,9 @@ export default class Slider extends Element {
                 this.itemsParent.append(firstElement)
                 this.items = Array.from(this.itemsParent.children)
                 this.targetLeft -= activeLeft - this.activeItem.getBoundingClientRect().left
+                this.floorLeft()
                 this.applyLeft()
+                this.unfloorLeft()
             }
         }
     }
